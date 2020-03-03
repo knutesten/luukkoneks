@@ -1,11 +1,19 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::io;
+use std::fmt;
+use std::fmt::{Error, Formatter};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct Memory {
     cartridge_mem: Vec<u8>,
     working_mem: Vec<u8>,
+}
+
+impl fmt::Debug for Memory {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        unimplemented!()
+    }
 }
 
 impl Memory {
@@ -32,7 +40,7 @@ impl Memory {
         }
     }
 
-    fn read(self, addr: u16) -> u8 {
+    pub fn read(&self, addr: u16) -> u8 {
         return match addr {
             0..=0x7FFF => self.cartridge_mem[addr as usize],
             0xC000..=0xDFFF => self.working_mem[(addr - 0xC000) as usize],
@@ -40,7 +48,7 @@ impl Memory {
         };
     }
 
-    fn write(&mut self, addr: u16, data: u8) {
+    pub fn write(&mut self, addr: u16, data: u8) {
         match addr {
             0xC000..=0xDFFF => self.working_mem[(addr - 0xC000) as usize] = data,
             default => panic!("Invalid addr to write memory {:#x}", addr)
