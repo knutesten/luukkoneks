@@ -1,5 +1,6 @@
 use std::fmt;
 use std::fmt::{Error, Formatter};
+use bitfield::bitfield;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum RegisterType {
@@ -19,10 +20,19 @@ pub enum RegisterType {
     HL,
 }
 
+bitfield!{
+    pub struct FLAGS(u8);
+    impl Debug;
+    pub get_z, set_z: 7;
+    pub get_n, set_n: 6;
+    pub get_h, set_h: 5;
+    pub get_c, set_c: 4;
+}
+
 #[derive(PartialEq, Clone, Eq)]
 pub struct Registers {
     pub a: u8,
-    pub f: u8,
+    pub f: FLAGS,
     pub b: u8,
     pub c: u8,
     pub d: u8,
@@ -79,7 +89,7 @@ impl Registers {
     pub fn new() -> Registers {
         Registers {
             a: 0x01,
-            f: 0xB0,
+            f: FLAGS(0xB0),
             b: 0x00,
             c: 0x13,
             d: 0x00,
@@ -91,7 +101,15 @@ impl Registers {
         }
     }
 
-    combo_reg!(get_af, set_af, a, f);
+    pub fn get_af(&self) -> u16 {
+        return ((self.a << 8) & self.f.0) as u16;
+    }
+
+    pub fn set_af(&mut self, value: u16) {
+        self.a = (value >> 8) as u8;
+        self.f = FLAGS((value & 0xF0) as u8)
+    }
+
     combo_reg!(get_bc, set_bc, b, c);
     combo_reg!(get_de, set_de, d, e);
     combo_reg!(get_hl, set_hl, h, l);
@@ -103,7 +121,7 @@ impl Registers {
             RegisterType::C => { self.c = value as u8 }
             RegisterType::D => { self.d = value as u8 }
             RegisterType::E => { self.e = value as u8 }
-            RegisterType::F => { self.f = value as u8 }
+            RegisterType::F => { self.f = FLAGS((value & 0xF0) as u8) }
             RegisterType::H => { self.h = value as u8 }
             RegisterType::L => { self.l = value as u8 }
             RegisterType::PC => { self.pc = value }
@@ -122,7 +140,7 @@ impl Registers {
             RegisterType::C => { self.c as u16 }
             RegisterType::D => { self.d as u16 }
             RegisterType::E => { self.e as u16 }
-            RegisterType::F => { self.f as u16 }
+            RegisterType::F => { self.f.0 as u16 }
             RegisterType::H => { self.h as u16 }
             RegisterType::L => { self.l as u16 }
             RegisterType::PC => { self.pc }
