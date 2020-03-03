@@ -12,11 +12,30 @@ pub fn process_instruction(registers: &mut Registers, memory: &mut Memory) -> us
     let instruction = memory.read(program_counter);
     let cycles = match instruction {
         0x00 => handle_nop(registers),
-        0x40..=0x7F => handle_load_instruction(instruction, registers, memory),
+        0x2F => handle_cpl(registers),
+        0xC3 => handle_jump(&program_counter, registers, memory),
+        0x40..=0x7F => handle_load(instruction, registers, memory),
         _ => panic!("Unsupported instruction {:#04x}", instruction)
     };
     sleep(CYCLE_DURATION);
     cycles
+}
+
+fn handle_cpl(registers: &mut Registers) -> usize {
+    registers.set(A, !registers.get(A));
+    let mut flags = registers.get_flags();
+    flags.set_n(true);
+    flags.set_h(true);
+    registers.set_flags(flags);
+    increment_pc(registers);
+    4
+}
+
+fn handle_jump(program_counter: &u16, registers: &mut Registers, memory: &Memory) -> usize {
+    let pc = ((memory.read(program_counter + 1) as u16) << 8) +
+        memory.read(program_counter + 2) as u16;
+    registers.set(PC, pc);
+    4
 }
 
 fn handle_nop(registers: &mut Registers) -> usize {
@@ -24,9 +43,9 @@ fn handle_nop(registers: &mut Registers) -> usize {
     4
 }
 
-fn handle_load_instruction(instruction: u8,
-                           registers: &mut Registers,
-                           memory: &mut Memory) -> usize {
+fn handle_load(instruction: u8,
+               registers: &mut Registers,
+               memory: &mut Memory) -> usize {
     let to = match instruction {
         0x40..=0x47 => B,
         0x48..=0x4F => C,
@@ -42,6 +61,7 @@ fn handle_load_instruction(instruction: u8,
     let from = match instruction & 0xF {
         0x00 | 0x08 => B,
         0x01 | 0x09 => C,
+        0x02 | 0x0A => D,
         _ => panic!("Unsupported load instruction {:#04x}", instruction)
     };
 
@@ -117,6 +137,93 @@ mod test {
                 assert_eq!(expected_memory, memory);
             }
         }
+    }
+
+    #[test]
+    fn test_0x2F() {
+        let mut registers = Registers::new();
+        let mut memory = Memory::init_empty_with_instruction(0x0100, &[0x2F]);
+
+        let mut expected_registers = registers.clone();
+        expected_registers.set(PC, 0x0101);
+        expected_registers.set(F, 0b11110000);
+        expected_registers.set(A, 0xFE);
+        let expected_memory = memory.clone();
+
+        let cycles = process_instruction(&mut registers, &mut memory);
+        assert_eq!(4, cycles);
+        assert_eq!(expected_registers, registers);
+        assert_eq!(expected_memory, memory);
+    }
+
+    #[test]
+    fn test_0xC3() {
+        let mut registers = Registers::new();
+        let mut memory = Memory::init_empty_with_instruction(0x0100, &[0xC3, 0x12, 0x34]);
+
+        let mut expected_registers = registers.clone();
+        expected_registers.set(PC, 0x1234);
+        let expected_memory = memory.clone();
+
+        let cycles = process_instruction(&mut registers, &mut memory);
+        assert_eq!(4, cycles);
+        assert_eq!(expected_registers, registers);
+        assert_eq!(expected_memory, memory);
+    }
+
+    #[test]
+    fn test_0x00() {
+        let mut registers = Registers::new();
+        let mut memory = Memory::init_empty_with_instruction(0x0100, &[0x00]);
+
+        let mut expected_registers = registers.clone();
+        expected_registers.set(PC, 0x0101);
+        let expected_memory = memory.clone();
+
+        let cycles = process_instruction(&mut registers, &mut memory);
+        assert_eq!(4, cycles);
+        assert_eq!(expected_registers, registers);
+        assert_eq!(expected_memory, memory);
+    }
+
+    #[test]
+    fn test_x42() {
+        load_test_only_reg!(0x42, B, D);
+    }
+
+    #[test]
+    fn test_x52() {
+        load_test_only_reg!(0x52, D, D);
+    }
+
+    #[test]
+    fn test_x62() {
+        load_test_only_reg!(0x62, H, D);
+    }
+
+    #[test]
+    fn test_x72() {
+        load_test_to_memory!(0x72, HL, D);
+    }
+
+    #[test]
+    fn test_x4A() {
+        load_test_only_reg!(0x4A, C, D);
+    }
+
+    #[test]
+    fn test_x5A() {
+        load_test_only_reg!(0x5A, E, D);
+    }
+
+    #[test]
+    fn test_x6A() {
+        load_test_only_reg!(0x6A, L, D);
+    }
+
+    #[test]
+    fn test_x7A() {
+        load_test_only_reg!(0x7A, A, D);
     }
 
     #[test]
