@@ -50,7 +50,7 @@ fn handle_jump(program_counter: &u16, registers: &mut Registers, memory: &Memory
     let pc = ((memory.read(program_counter + 1) as u16) << 8) +
         memory.read(program_counter + 2) as u16;
     registers.set(PC, pc);
-    4
+    16
 }
 
 fn handle_nop(registers: &mut Registers) -> usize {
@@ -221,7 +221,7 @@ mod test {
         let expected_memory = memory.clone();
 
         let cycles = process_instruction(&mut registers, &mut memory);
-        assert_eq!(4, cycles);
+        assert_eq!(16, cycles);
         assert_eq!(expected_registers, registers);
         assert_eq!(expected_memory, memory);
     }
