@@ -1,6 +1,23 @@
 use std::fmt;
 use std::fmt::{Error, Formatter};
 
+pub enum RegisterType {
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    H,
+    L,
+    PC,
+    SP,
+    AF,
+    BC,
+    DE,
+    HL,
+}
+
 #[derive(PartialEq, Clone, Eq)]
 pub struct Registers {
     pub a: u8,
@@ -77,4 +94,42 @@ impl Registers {
     combo_reg!(get_bc, set_bc, b, c);
     combo_reg!(get_de, set_de, d, e);
     combo_reg!(get_hl, set_hl, h, l);
+
+    pub fn set(&mut self, register_type: RegisterType, value: u16) {
+        match register_type {
+            RegisterType::A => { self.a = value as u8 }
+            RegisterType::B => { self.b = value as u8 }
+            RegisterType::C => { self.c = value as u8 }
+            RegisterType::D => { self.d = value as u8 }
+            RegisterType::E => { self.e = value as u8 }
+            RegisterType::F => { self.f = value as u8 }
+            RegisterType::H => { self.h = value as u8 }
+            RegisterType::L => { self.l = value as u8 }
+            RegisterType::PC => { self.pc = value }
+            RegisterType::SP => { self.sp = value }
+            RegisterType::AF => { self.set_af(value) }
+            RegisterType::BC => { self.set_bc(value) }
+            RegisterType::DE => { self.set_de(value) }
+            RegisterType::HL => { self.set_hl(value) }
+        }
+    }
+
+    pub fn get(&mut self, register_type: RegisterType) -> u16 {
+        return match register_type {
+            RegisterType::A => { self.a as u16 }
+            RegisterType::B => { self.b as u16 }
+            RegisterType::C => { self.c as u16 }
+            RegisterType::D => { self.d as u16 }
+            RegisterType::E => { self.e as u16 }
+            RegisterType::F => { self.f as u16 }
+            RegisterType::H => { self.h as u16 }
+            RegisterType::L => { self.l as u16 }
+            RegisterType::PC => { self.pc }
+            RegisterType::SP => { self.sp }
+            RegisterType::AF => { self.get_af() }
+            RegisterType::BC => { self.get_bc() }
+            RegisterType::DE => { self.get_de() }
+            RegisterType::HL => { self.get_hl() }
+        };
+    }
 }
