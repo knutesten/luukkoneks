@@ -103,7 +103,7 @@ impl Registers {
     }
 
     pub fn get_af(&self) -> u16 {
-        return ((self.a << 8) & self.f.0) as u16;
+        return (((self.a as u16) << 8) & self.f.0 as u16) as u16;
     }
 
     pub fn set_af(&mut self, value: u16) {
