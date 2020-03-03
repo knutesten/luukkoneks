@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::{Error, Formatter};
 
+#[derive(PartialEq, Clone, Eq)]
 pub struct Registers {
     pub a: u8,
     pub f: u8,
@@ -13,6 +14,8 @@ pub struct Registers {
     pub pc: u16,
     pub sp: u16,
 }
+
+//impl Eq for Registers {}
 
 impl fmt::Debug for Registers {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
