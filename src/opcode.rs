@@ -31,7 +31,7 @@ fn handle_dec(instruction: u8, registers: &mut Registers) -> usize {
         _ => panic!("Unsupported dec instruction {:#04x}", instruction),
     };
 
-    registers.set(target, registers.get(target) - 1);
+    registers.set(target, registers.get(target).wrapping_sub(1));
     increment_pc(registers);
     4
 }
@@ -158,11 +158,11 @@ mod test {
         ($instruction: tt, $target: tt) => {
             {
                 let mut registers = Registers::new();
-                registers.set($target, 0x1000);
+                registers.set($target, 0x0000);
                 let mut memory = Memory::init_empty_with_instruction(0x0100, &[$instruction]);
 
                 let mut expected_registers = registers.clone();
-                expected_registers.set($target, 0x0fff);
+                expected_registers.set($target, 0xffff);
                 expected_registers.set(PC, 0x0101);
                 let expected_memory = memory.clone();
 
