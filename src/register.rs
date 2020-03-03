@@ -15,8 +15,6 @@ pub struct Registers {
     pub sp: u16,
 }
 
-//impl Eq for Registers {}
-
 impl fmt::Debug for Registers {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         writeln!(f,
