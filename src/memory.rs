@@ -19,6 +19,19 @@ impl Memory {
         Ok(mem)
     }
 
+    pub fn init_empty_with_instruction(offset: usize, prog: &[u8]) -> Memory {
+        let mut cart_mem = Vec::with_capacity(32*1024);
+
+        for x in prog.len() {
+            cart_mem[x+offset] = prog[x]
+        }
+
+        Memory {
+            cartridge_mem: cart_mem,
+            working_mem: Vec::with_capacity(8 * 1024),
+        }
+    }
+
     fn read(self, addr: u16) -> u8 {
         return match addr {
             0..=0x7FFF => self.cartridge_mem[addr as usize],
