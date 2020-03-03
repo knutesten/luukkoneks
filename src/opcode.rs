@@ -79,7 +79,7 @@ mod test {
     use super::*;
 
     macro_rules! load_test_only_reg {
-        ($instruction: tt, $to: tt, $from: tt, $cycles: tt) => {
+        ($instruction: tt, $to: tt, $from: tt) => {
             {
                 let mut registers = Registers::new();
                 registers.set($from, 0xff);
@@ -91,7 +91,28 @@ mod test {
                 let expected_memory = memory.clone();
 
                 let cycles = process_instruction(&mut registers, &mut memory);
-                assert_eq!($cycles, cycles);
+                assert_eq!(4, cycles);
+                assert_eq!(expected_registers, registers);
+                assert_eq!(expected_memory, memory);
+            }
+        }
+    }
+
+    macro_rules! load_test_to_memory {
+        ($instruction: tt, $to: tt, $from: tt) => {
+            {
+                let mut registers = Registers::new();
+                registers.set($from, 0xff);
+                registers.set($to, 0xD000);
+                let mut memory = Memory::init_empty_with_instruction(0x0100, &[$instruction]);
+
+                let mut expected_registers = registers.clone();
+                expected_registers.set(PC, 0x0101);
+                let mut expected_memory = memory.clone();
+                expected_memory.write(0xD000, 0xFF);
+
+                let cycles = process_instruction(&mut registers, &mut memory);
+                assert_eq!(8, cycles);
                 assert_eq!(expected_registers, registers);
                 assert_eq!(expected_memory, memory);
             }
@@ -100,107 +121,81 @@ mod test {
 
     #[test]
     fn test_x40() {
-        load_test_only_reg!(0x40, B, B, 4)
+        load_test_only_reg!(0x40, B, B);
     }
 
     #[test]
     fn test_x50() {
-        load_test_only_reg!(0x50, D, B, 4)
+        load_test_only_reg!(0x50, D, B);
     }
 
     #[test]
     fn test_x60() {
-        load_test_only_reg!(0x60, H, B, 4)
+        load_test_only_reg!(0x60, H, B);
     }
 
     #[test]
     fn test_x70() {
-        let mut registers = Registers::new();
-        registers.set(B, 0xff);
-        registers.set(HL, 0xD000);
-        let mut memory = Memory::init_empty_with_instruction(0x0100, &[0x70]);
-
-        let mut expected_registers = registers.clone();
-        expected_registers.set(PC, 0x0101);
-        let mut expected_memory = memory.clone();
-        expected_memory.write(0xD000, 0xFF);
-
-        let cycles = process_instruction(&mut registers, &mut memory);
-        assert_eq!(8, cycles);
-        assert_eq!(expected_registers, registers);
-        assert_eq!(expected_memory, memory);
+        load_test_to_memory!(0x70, HL, B);
     }
 
     #[test]
     fn test_x48() {
-        load_test_only_reg!(0x48, C, B, 4);
+        load_test_only_reg!(0x48, C, B);
     }
 
     #[test]
     fn test_x58() {
-        load_test_only_reg!(0x58, E, B, 4);
+        load_test_only_reg!(0x58, E, B);
     }
 
     #[test]
     fn test_x68() {
-        load_test_only_reg!(0x68, L, B, 4);
+        load_test_only_reg!(0x68, L, B);
     }
 
     #[test]
     fn test_x78() {
-        load_test_only_reg!(0x78, A, B, 4);
+        load_test_only_reg!(0x78, A, B);
     }
 
     #[test]
     fn test_x41() {
-        load_test_only_reg!(0x41, B, C, 4);
+        load_test_only_reg!(0x41, B, C);
     }
 
     #[test]
     fn test_x51() {
-        load_test_only_reg!(0x51, D, C, 4);
+        load_test_only_reg!(0x51, D, C);
     }
 
     #[test]
     fn test_x61() {
-        load_test_only_reg!(0x61, H, C, 4);
+        load_test_only_reg!(0x61, H, C);
     }
 
     #[test]
     fn test_x71() {
-        let mut registers = Registers::new();
-        registers.set(C, 0xff);
-        registers.set(HL, 0xD000);
-        let mut memory = Memory::init_empty_with_instruction(0x0100, &[0x71]);
-
-        let mut expected_registers = registers.clone();
-        expected_registers.set(PC, 0x0101);
-        let mut expected_memory = memory.clone();
-        expected_memory.write(0xD000, 0xFF);
-
-        let cycles = process_instruction(&mut registers, &mut memory);
-        assert_eq!(8, cycles);
-        assert_eq!(expected_registers, registers);
-        assert_eq!(expected_memory, memory);
+        load_test_to_memory!(0x71, HL, C)
     }
 
     #[test]
     fn test_x49() {
-        load_test_only_reg!(0x49, C, C, 4);
+        load_test_only_reg!(0x49, C, C);
     }
 
     #[test]
     fn test_x59() {
-        load_test_only_reg!(0x59, E, C, 4);
+        load_test_only_reg!(0x59, E, C);
     }
 
     #[test]
     fn test_x69() {
-        load_test_only_reg!(0x69, L, C, 4);
+        load_test_only_reg!(0x69, L, C);
     }
 
     #[test]
     fn test_x79() {
-        load_test_only_reg!(0x79, A, C, 4);
+        load_test_only_reg!(0x79, A, C);
     }
 }
