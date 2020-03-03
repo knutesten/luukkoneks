@@ -21,6 +21,7 @@ pub enum RegisterType {
 }
 
 bitfield!{
+    #[derive(PartialEq, Clone, Eq)]
     pub struct FLAGS(u8);
     impl Debug;
     pub get_z, set_z: 7;
