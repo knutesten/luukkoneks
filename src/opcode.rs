@@ -11,11 +11,17 @@ pub fn process_instruction(registers: &mut Registers, memory: &mut Memory) -> us
     let program_counter = registers.pc;
     let instruction = memory.read(program_counter);
     let cycles = match instruction {
+        0x00 => handle_nop(registers),
         0x40..=0x7F => handle_load_instruction(instruction, registers, memory),
-        _ => panic!("Unsupported instruction {:x?}", instruction)
+        _ => panic!("Unsupported instruction {:#04x}", instruction)
     };
     sleep(CYCLE_DURATION);
     cycles
+}
+
+fn handle_nop(registers: &mut Registers) -> usize {
+    increment_pc(registers);
+    4
 }
 
 fn handle_load_instruction(instruction: u8,
@@ -30,19 +36,24 @@ fn handle_load_instruction(instruction: u8,
         0x68..=0x6F => L,
         0x70..=0x77 => HL,
         0x78..=0x7F => A,
-        _ => panic!("Unsupported load instruction {}", instruction)
+        _ => panic!("Unsupported load instruction {:#04x}", instruction)
     };
 
     let from = match instruction & 0xF {
         0x00 | 0x08 => B,
         0x01 | 0x09 => C,
-        _ => panic!("Unsupported load instruction {}", instruction)
+        _ => panic!("Unsupported load instruction {:#04x}", instruction)
     };
 
     let value = read_value(from, { from == HL }, registers, memory);
     write_value(to, value, { to == HL }, registers, memory);
+    increment_pc(registers);
 
     if to == HL || from == HL { 8 } else { 4 }
+}
+
+fn increment_pc(registers: &mut Registers) {
+    registers.set(PC, 1 + registers.get(PC));
 }
 
 fn write_value(to: RegisterType, value: u16, to_memory: bool,
@@ -76,6 +87,7 @@ mod test {
 
                 let mut expected_registers = registers.clone();
                 expected_registers.set($to, 0xff);
+                expected_registers.set(PC, 0x0101);
                 let expected_memory = memory.clone();
 
                 let cycles = process_instruction(&mut registers, &mut memory);
@@ -109,6 +121,7 @@ mod test {
         let mut memory = Memory::init_empty_with_instruction(0x0100, &[0x70]);
 
         let mut expected_registers = registers.clone();
+        expected_registers.set(PC, 0x0101);
         let mut expected_memory = memory.clone();
         expected_memory.write(0xD000, 0xFF);
 
@@ -161,6 +174,7 @@ mod test {
         let mut memory = Memory::init_empty_with_instruction(0x0100, &[0x71]);
 
         let mut expected_registers = registers.clone();
+        expected_registers.set(PC, 0x0101);
         let mut expected_memory = memory.clone();
         expected_memory.write(0xD000, 0xFF);
 
