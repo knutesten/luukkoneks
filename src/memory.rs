@@ -21,14 +21,14 @@ impl Memory {
         let mut file = File::open(rom_name)?;
         let mut mem = Memory {
             cartridge_mem: Vec::new(),
-            working_mem: Vec::with_capacity(8 * 1024),
+            working_mem: vec![0; 8 * 1024],
         };
         file.read_to_end(&mut mem.cartridge_mem)?;
         Ok(mem)
     }
 
     pub fn init_empty_with_instruction(offset: usize, prog: &[u8]) -> Memory {
-        let mut cart_mem = Vec::with_capacity(32 * 1024);
+        let mut cart_mem = vec![0; 32 * 1024];
 
         for x in 0..prog.len() {
             cart_mem[x + offset] = prog[x]
@@ -36,7 +36,7 @@ impl Memory {
 
         Memory {
             cartridge_mem: cart_mem,
-            working_mem: Vec::with_capacity(8 * 1024),
+            working_mem: vec![0; 8 * 1024],
         }
     }
 
