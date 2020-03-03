@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::{Error, Formatter};
 
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum RegisterType {
     A,
     B,
@@ -114,7 +115,7 @@ impl Registers {
         }
     }
 
-    pub fn get(&mut self, register_type: RegisterType) -> u16 {
+    pub fn get(&self, register_type: RegisterType) -> u16 {
         return match register_type {
             RegisterType::A => { self.a as u16 }
             RegisterType::B => { self.b as u16 }
