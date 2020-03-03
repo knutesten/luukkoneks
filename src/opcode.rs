@@ -13,12 +13,27 @@ pub fn process_instruction(registers: &mut Registers, memory: &mut Memory) -> us
     let cycles = match instruction {
         0x00 => handle_nop(registers),
         0x2F => handle_cpl(registers),
+        0x0B | 0x1B | 0x2B | 0x3B => handle_dec(instruction, registers),
         0xC3 => handle_jump(&program_counter, registers, memory),
         0x40..=0x7F => handle_load(instruction, registers, memory),
         _ => panic!("Unsupported instruction {:#04x}", instruction)
     };
     sleep(CYCLE_DURATION);
     cycles
+}
+
+fn handle_dec(instruction: u8, registers: &mut Registers) -> usize {
+    let target = match instruction {
+        0x0B => BC,
+        0x1B => DE,
+        0x2B => HL,
+        0x3B => SP,
+        _ => panic!("Unsupported dec instruction {:#04x}", instruction),
+    };
+
+    registers.set(target, registers.get(target) - 1);
+    increment_pc(registers);
+    4
 }
 
 fn handle_cpl(registers: &mut Registers) -> usize {
@@ -137,6 +152,46 @@ mod test {
                 assert_eq!(expected_memory, memory);
             }
         }
+    }
+
+    macro_rules! dec_test {
+        ($instruction: tt, $target: tt) => {
+            {
+                let mut registers = Registers::new();
+                registers.set($target, 0x1000);
+                let mut memory = Memory::init_empty_with_instruction(0x0100, &[$instruction]);
+
+                let mut expected_registers = registers.clone();
+                expected_registers.set($target, 0x0fff);
+                expected_registers.set(PC, 0x0101);
+                let expected_memory = memory.clone();
+
+                let cycles = process_instruction(&mut registers, &mut memory);
+                assert_eq!(4, cycles);
+                assert_eq!(expected_registers, registers);
+                assert_eq!(expected_memory, memory);
+            }
+        }
+    }
+
+    #[test]
+    fn test_0x0B() {
+        dec_test!(0x0B, BC)
+    }
+
+    #[test]
+    fn test_0x1B() {
+        dec_test!(0x1B, DE)
+    }
+
+    #[test]
+    fn test_0x2B() {
+        dec_test!(0x2B, HL)
+    }
+
+    #[test]
+    fn test_0x3B() {
+        dec_test!(0x3B, SP)
     }
 
     #[test]
