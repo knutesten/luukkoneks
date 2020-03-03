@@ -33,7 +33,7 @@ fn handle_dec(instruction: u8, registers: &mut Registers) -> usize {
 
     registers.set(target, registers.get(target).wrapping_sub(1));
     increment_pc(registers);
-    4
+    8
 }
 
 fn handle_cpl(registers: &mut Registers) -> usize {
@@ -167,7 +167,7 @@ mod test {
                 let expected_memory = memory.clone();
 
                 let cycles = process_instruction(&mut registers, &mut memory);
-                assert_eq!(4, cycles);
+                assert_eq!(8, cycles);
                 assert_eq!(expected_registers, registers);
                 assert_eq!(expected_memory, memory);
             }
