@@ -21,7 +21,7 @@ pub enum RegisterType {
 }
 
 bitfield!{
-    #[derive(PartialEq, Clone, Eq)]
+    #[derive(PartialEq, Clone, Eq, Copy)]
     pub struct FLAGS(u8);
     impl Debug;
     pub get_z, set_z: 7;
@@ -109,6 +109,14 @@ impl Registers {
     pub fn set_af(&mut self, value: u16) {
         self.a = (value >> 8) as u8;
         self.f = FLAGS((value & 0xF0) as u8)
+    }
+
+    pub fn set_flags(&mut self, flags: FLAGS) {
+        self.f = flags
+    }
+
+    pub fn get_flags(&self) -> FLAGS {
+        return self.f
     }
 
     combo_reg!(get_bc, set_bc, b, c);
