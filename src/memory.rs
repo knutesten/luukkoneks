@@ -20,10 +20,10 @@ impl Memory {
     }
 
     pub fn init_empty_with_instruction(offset: usize, prog: &[u8]) -> Memory {
-        let mut cart_mem = Vec::with_capacity(32*1024);
+        let mut cart_mem = Vec::with_capacity(32 * 1024);
 
-        for x in prog.len() {
-            cart_mem[x+offset] = prog[x]
+        for x in 0..prog.len() {
+            cart_mem[x + offset] = prog[x]
         }
 
         Memory {
