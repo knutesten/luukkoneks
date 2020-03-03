@@ -1,6 +1,7 @@
 mod register;
 mod memory;
 mod opcode;
+mod lcd;
 
 fn main() {
     let registers = register::Registers::new();
