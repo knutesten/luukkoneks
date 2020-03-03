@@ -12,7 +12,7 @@ pub fn process_instruction(registers: &mut Registers, memory: &mut Memory) -> us
     let instruction = memory.read(program_counter);
     let cycles = match instruction {
         0x40..=0x7F => handle_load_instruction(instruction, registers, memory),
-        _ => panic!("Unsupported instruction {}", instruction)
+        _ => panic!("Unsupported instruction {:x?}", instruction)
     };
     sleep(CYCLE_DURATION);
     cycles
