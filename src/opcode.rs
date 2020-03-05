@@ -13,7 +13,8 @@ pub fn process_instruction(registers: &mut Registers, memory: &mut Memory) -> us
     let cycles = match instruction {
         0x00 => handle_nop(registers),
         0x2F => handle_cpl(registers),
-        0x0B | 0x1B | 0x2B | 0x3B => handle_dec(instruction, registers),
+        0x05 | 0x15 | 0x25 | 0x35 => handle_dec_n(instruction, registers, memory),
+        0x0B | 0x1B | 0x2B | 0x3B => handle_dec_nn(instruction, registers),
         0xC3 => handle_jump(&program_counter, registers, memory),
         0x40..=0x7F => handle_load(instruction, registers, memory),
         _ => panic!("Unsupported instruction {:#04x}", instruction)
@@ -22,7 +23,31 @@ pub fn process_instruction(registers: &mut Registers, memory: &mut Memory) -> us
     cycles
 }
 
-fn handle_dec(instruction: u8, registers: &mut Registers) -> usize {
+fn handle_dec_n(instruction: u8, registers: &mut Registers, memory: &mut Memory) -> usize {
+    let target = match instruction {
+        0x05 => B,
+        0x15 => D,
+        0x25 => H,
+        0x35 => HL,
+        _ => panic!("Unsupported dec instruction {:#04x}", instruction),
+    };
+
+    let current_value = read_value(target, target == HL, registers, memory);
+    let new_value = current_value.wrapping_sub(1);
+    write_value(target, new_value, HL == target, registers, memory);
+
+    let mut flags = registers.get_flags();
+    flags.set_z(0x00 == new_value);
+    flags.set_n(true);
+    flags.set_h(0x00 != (0xF & current_value));
+    registers.set_flags(flags);
+
+    increment_pc(registers);
+
+    if HL == target { 12 } else { 4 }
+}
+
+fn handle_dec_nn(instruction: u8, registers: &mut Registers) -> usize {
     let target = match instruction {
         0x0B => BC,
         0x1B => DE,
@@ -155,43 +180,102 @@ mod test {
     }
 
     macro_rules! dec_test {
-        ($instruction: tt, $target: tt) => {
+        ($instruction: tt, $target: tt, $expected_value: tt, $init_value: tt,
+         $expected_flags: tt, $init_flags: tt, $expected_cycles: tt) => {
             {
                 let mut registers = Registers::new();
-                registers.set($target, 0x0000);
+                registers.set($target, $init_value);
+                registers.set(F, $init_flags);
                 let mut memory = Memory::init_empty_with_instruction(0x0100, &[$instruction]);
 
                 let mut expected_registers = registers.clone();
-                expected_registers.set($target, 0xffff);
+                expected_registers.set($target, $expected_value);
                 expected_registers.set(PC, 0x0101);
+                expected_registers.set(F, $expected_flags);
                 let expected_memory = memory.clone();
 
                 let cycles = process_instruction(&mut registers, &mut memory);
-                assert_eq!(8, cycles);
+                assert_eq!($expected_cycles, cycles);
                 assert_eq!(expected_registers, registers);
                 assert_eq!(expected_memory, memory);
             }
         }
     }
 
+    macro_rules! dec_test_memory {
+        ($instruction: tt, $target: tt, $expected_value: tt, $init_value: tt,
+         $expected_flags: tt, $init_flags: tt, $expected_cycles: tt) => {
+            {
+                let mut registers = Registers::new();
+                registers.set($target, 0xD000);
+                registers.set(F, $init_flags);
+                let mut memory = Memory::init_empty_with_instruction(0x0100, &[$instruction]);
+                memory.write(0xD000, $init_value);
+
+                let mut expected_registers = registers.clone();
+                expected_registers.set(PC, 0x0101);
+                expected_registers.set(F, $expected_flags);
+                let mut expected_memory = memory.clone();
+                expected_memory.write(0xD000, $expected_value);
+
+                let cycles = process_instruction(&mut registers, &mut memory);
+                assert_eq!(expected_registers, registers);
+                assert_eq!(expected_memory, memory);
+                assert_eq!($expected_cycles, cycles);
+            }
+        }
+    }
+
+    #[test]
+    fn test_0x05() {
+        dec_test!(0x05, B, 0b11111111, 0b00000000, 0b01000000, 0x0, 4);
+        dec_test!(0x05, B, 0b00100000, 0b00100001, 0b01100000, 0x0, 4);
+        dec_test!(0x05, B, 0b00001111, 0b00010000, 0b01000000, 0x0, 4);
+        dec_test!(0x05, B, 0b00000000, 0b00000001, 0b11100000, 0x0, 4);
+    }
+
+    #[test]
+    fn test_0x15() {
+        dec_test!(0x15, D, 0b11111111, 0b00000000, 0b01000000, 0x0, 4);
+        dec_test!(0x15, D, 0b00100000, 0b00100001, 0b01100000, 0x0, 4);
+        dec_test!(0x15, D, 0b00001111, 0b00010000, 0b01000000, 0x0, 4);
+        dec_test!(0x15, D, 0b00000000, 0b00000001, 0b11100000, 0x0, 4);
+    }
+
+    #[test]
+    fn test_0x25() {
+        dec_test!(0x25, H, 0b11111111, 0b00000000, 0b01000000, 0x0, 4);
+        dec_test!(0x25, H, 0b00100000, 0b00100001, 0b01100000, 0x0, 4);
+        dec_test!(0x25, H, 0b00001111, 0b00010000, 0b01000000, 0x0, 4);
+        dec_test!(0x25, H, 0b00000000, 0b00000001, 0b11100000, 0x0, 4);
+    }
+
+    #[test]
+    fn test_0x35() {
+        dec_test_memory!(0x35, HL, 0b11111111, 0b00000000, 0b01000000, 0x0, 12);
+        dec_test_memory!(0x35, HL, 0b00100000, 0b00100001, 0b01100000, 0x0, 12);
+        dec_test_memory!(0x35, HL, 0b00001111, 0b00010000, 0b01000000, 0x0, 12);
+        dec_test_memory!(0x35, HL, 0b00000000, 0b00000001, 0b11100000, 0x0, 12);
+    }
+
     #[test]
     fn test_0x0B() {
-        dec_test!(0x0B, BC)
+        dec_test!(0x0B, BC, 0xFFFF, 0x0000, 0x00, 0x00, 8)
     }
 
     #[test]
     fn test_0x1B() {
-        dec_test!(0x1B, DE)
+        dec_test!(0x1B, DE, 0xFFFF, 0x0000, 0x00, 0x00, 8)
     }
 
     #[test]
     fn test_0x2B() {
-        dec_test!(0x2B, HL)
+        dec_test!(0x2B, HL, 0xFFFF, 0x0000, 0x00, 0x00, 8)
     }
 
     #[test]
     fn test_0x3B() {
-        dec_test!(0x3B, SP)
+        dec_test!(0x3B, SP, 0xFFFF, 0x0000, 0x00, 0x00, 8)
     }
 
     #[test]
