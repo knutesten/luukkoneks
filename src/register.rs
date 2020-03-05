@@ -47,7 +47,8 @@ pub struct Registers {
 impl fmt::Debug for Registers {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         writeln!(f,
-                 "AF={:#06x}\nBC={:#06x}\nDE={:#06x}\nHL={:#06x}\nSP={:#06x}\nPC={:#06x}",
+                 "Flags={:#010b}\nAF={:#06x}\nBC={:#06x}\nDE={:#06x}\nHL={:#06x}\nSP={:#06x}\nPC={:#06x}",
+                 self.f.0,
                  self.get_af(),
                  self.get_bc(),
                  self.get_de(),
@@ -103,7 +104,7 @@ impl Registers {
     }
 
     pub fn get_af(&self) -> u16 {
-        return (((self.a as u16) << 8) & self.f.0 as u16) as u16;
+        return (((self.a as u16) << 8) | self.f.0 as u16) as u16;
     }
 
     pub fn set_af(&mut self, value: u16) {
