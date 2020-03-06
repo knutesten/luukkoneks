@@ -13,7 +13,7 @@ pub fn process_instruction(registers: &mut Registers, memory: &mut Memory) -> us
     let cycles = match instruction {
         0x00 => handle_nop(registers),
         0x2F => handle_cpl(registers),
-        0x05 | 0x15 | 0x25 | 0x35 => handle_dec_n(instruction, registers, memory),
+        0x05 | 0x15 | 0x25 | 0x35 | 0x0D | 0x1D | 0x2D | 0x3D => handle_dec_n(instruction, registers, memory),
         0x0B | 0x1B | 0x2B | 0x3B => handle_dec_nn(instruction, registers),
         0xC3 => handle_jump(&program_counter, registers, memory),
         0x40..=0x7F => handle_load(instruction, registers, memory),
@@ -29,6 +29,10 @@ fn handle_dec_n(instruction: u8, registers: &mut Registers, memory: &mut Memory)
         0x15 => D,
         0x25 => H,
         0x35 => HL,
+        0x0D => C,
+        0x1D => E,
+        0x2D => L,
+        0x3D => A,
         _ => panic!("Unsupported dec instruction {:#04x}", instruction),
     };
 
@@ -224,6 +228,38 @@ mod test {
                 assert_eq!($expected_cycles, cycles);
             }
         }
+    }
+
+    #[test]
+    fn test_0x0D() {
+        dec_test!(0x0D, C, 0b11111111, 0b00000000, 0b01000000, 0x0, 4);
+        dec_test!(0x0D, C, 0b00100000, 0b00100001, 0b01100000, 0x0, 4);
+        dec_test!(0x0D, C, 0b00001111, 0b00010000, 0b01000000, 0x0, 4);
+        dec_test!(0x0D, C, 0b00000000, 0b00000001, 0b11100000, 0x0, 4);
+    }
+
+    #[test]
+    fn test_0x1D() {
+        dec_test!(0x1D, E, 0b11111111, 0b00000000, 0b01000000, 0x0, 4);
+        dec_test!(0x1D, E, 0b00100000, 0b00100001, 0b01100000, 0x0, 4);
+        dec_test!(0x1D, E, 0b00001111, 0b00010000, 0b01000000, 0x0, 4);
+        dec_test!(0x1D, E, 0b00000000, 0b00000001, 0b11100000, 0x0, 4);
+    }
+
+    #[test]
+    fn test_0x2D() {
+        dec_test!(0x2D, L, 0b11111111, 0b00000000, 0b01000000, 0x0, 4);
+        dec_test!(0x2D, L, 0b00100000, 0b00100001, 0b01100000, 0x0, 4);
+        dec_test!(0x2D, L, 0b00001111, 0b00010000, 0b01000000, 0x0, 4);
+        dec_test!(0x2D, L, 0b00000000, 0b00000001, 0b11100000, 0x0, 4);
+    }
+
+    #[test]
+    fn test_0x3D() {
+        dec_test!(0x3D, A, 0b11111111, 0b00000000, 0b01000000, 0x0, 4);
+        dec_test!(0x3D, A, 0b00100000, 0b00100001, 0b01100000, 0x0, 4);
+        dec_test!(0x3D, A, 0b00001111, 0b00010000, 0b01000000, 0x0, 4);
+        dec_test!(0x3D, A, 0b00000000, 0b00000001, 0b11100000, 0x0, 4);
     }
 
     #[test]
