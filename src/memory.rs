@@ -44,14 +44,14 @@ impl Memory {
         return match addr {
             0..=0x7FFF => self.cartridge_mem[addr as usize],
             0xC000..=0xDFFF => self.working_mem[(addr - 0xC000) as usize],
-            default => panic!("Tried to read invalid memory {:#x}", addr)
+            _ => panic!("Tried to read invalid memory {:#x}", addr)
         };
     }
 
     pub fn write(&mut self, addr: u16, data: u8) {
         match addr {
             0xC000..=0xDFFF => self.working_mem[(addr - 0xC000) as usize] = data,
-            default => panic!("Invalid addr to write memory {:#x}", addr)
+            _ => panic!("Invalid addr to write memory {:#x}", addr)
         }
     }
 }
