@@ -16,7 +16,7 @@ pub fn process_instruction(registers: &mut Registers, memory: &mut Memory) -> us
         0x05 | 0x15 | 0x25 | 0x35 | 0x0D | 0x1D | 0x2D | 0x3D => handle_dec_n(instruction, registers, memory),
         0x0B | 0x1B | 0x2B | 0x3B => handle_dec_nn(instruction, registers),
         0xC3 => handle_jump(&program_counter, registers, memory),
-        0x40..=0x7F => handle_load(instruction, registers, memory),
+        0x40..=0x7F | 0x02 | 0x12 => handle_load(instruction, registers, memory),
         _ => panic!("Unsupported instruction {:#04x}", instruction)
     };
     sleep(CYCLE_DURATION);
@@ -90,30 +90,35 @@ fn handle_nop(registers: &mut Registers) -> usize {
 fn handle_load(instruction: u8,
                registers: &mut Registers,
                memory: &mut Memory) -> usize {
-    let to = match instruction {
-        0x40..=0x47 => B,
-        0x48..=0x4F => C,
-        0x50..=0x57 => D,
-        0x58..=0x5F => E,
-        0x60..=0x67 => H,
-        0x68..=0x6F => L,
-        0x70..=0x77 => HL,
-        0x78..=0x7F => A,
+    let (to, to_memory) = match instruction {
+        0x40..=0x47 => (B, false),
+        0x48..=0x4F => (C, false),
+        0x50..=0x57 => (D, false),
+        0x58..=0x5F => (E, false),
+        0x60..=0x67 => (H, false),
+        0x68..=0x6F => (L, false),
+        0x78..=0x7F => (A, false),
+        0x70..=0x77 => (HL, true),
+        0x02 => (BC, true),
+        0x12 => (DE, true),
+//        0x22 | 0x23 => (HL, true),
         _ => panic!("Unsupported load instruction {:#04x}", instruction)
     };
 
-    let from = match instruction & 0xF {
-        0x00 | 0x08 => B,
-        0x01 | 0x09 => C,
-        0x02 | 0x0A => D,
+    let instruction_swapped_nibbles = (instruction & 0x0F) << 4 | (instruction & 0xF0) >> 4;
+    let (from, from_memory) = match instruction_swapped_nibbles {
+        0x04..=0x07 | 0x84..=0x87 => (B, false),
+        0x14..=0x17 | 0x94..=0x97 => (C, false),
+        0x24..=0x27 | 0xA4..=0xA7 => (D, false),
+        0x20..=0x23 => (A, false),
         _ => panic!("Unsupported load instruction {:#04x}", instruction)
     };
 
-    let value = read_value(from, { from == HL }, registers, memory);
-    write_value(to, value, { to == HL }, registers, memory);
+    let value = read_value(from, from_memory, registers, memory);
+    write_value(to, value, to_memory, registers, memory);
     increment_pc(registers);
 
-    if to == HL || from == HL { 8 } else { 4 }
+    if to_memory || from_memory { 8 } else { 4 }
 }
 
 fn increment_pc(registers: &mut Registers) {
@@ -228,6 +233,16 @@ mod test {
                 assert_eq!($expected_cycles, cycles);
             }
         }
+    }
+
+    #[test]
+    fn test_x02() {
+        load_test_to_memory!(0x02, BC, A);
+    }
+
+    #[test]
+    fn test_x12() {
+        load_test_to_memory!(0x12, DE, A);
     }
 
     #[test]
